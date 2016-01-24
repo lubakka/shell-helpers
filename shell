@@ -1,0 +1,13 @@
+#!/bin/bash
+
+## Create class diagram on PHP
+phuml(){
+	if [ ! -d "$HOME/Pictures/diagrami" ]; then 
+		mkdir -p $HOME/Pictures/diagrami
+	fi
+
+	/usr/local/phuml/phuml/src/app/phuml -r $1 -graphviz -createAssociations false -neato $HOME/Pictures/diagrami/$2
+}
+
+
+$@ ${@:2}

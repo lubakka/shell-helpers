@@ -1,0 +1,36 @@
+#!/bin/sh
+
+DIR=$(pwd)
+APPDIR=$DIR/js
+NPM=$(which npm)
+PYTHON=$(which python)
+FILE=$DIR/package.json
+
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3"  ] ;  then
+    	echo "No argument supplied"
+	echo "Usege $0 <name> <version> <desc>"
+    	exit 1
+fi 
+
+if [ ! -d "$APPDIR" ] ; then
+	mkdir -p "$APPDIR"
+	mkdir -p "$APPDIR/controllers"
+	mkdir -p "$APPDIR/directive"
+	mkdir -p "$APPDIR/services"
+fi
+
+if [ ! -f "$APPDIR/app.js" ] ; then
+	touch "$APPDIR/app.js"
+fi
+
+if [ ! -f $FILE ] ; then
+	touch $FILE
+fi
+
+if [ ! -f "$DIR/index.html" ] ; then
+	touch "$DIR/index.html"
+fi
+
+$PYTHON $HOME/bin/lib/angularJSONPackage $1 $2 "$3" $FILE
+$NPM install
+

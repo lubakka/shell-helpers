@@ -1,0 +1,219 @@
+#!/bin/bash
+
+display_syntax(){
+    echo ""
+    echo "  The Syntax is like this:"
+    echo "  ========================"
+    echo "      "$(basename $0)" -f <facade_name> -n '<namespace_prefix>'"
+    echo ""
+    echo "  Example:"
+    echo "  ========"
+    echo "      "$(basename $0) -f test -n "'App\MyAppDirectory'"
+    echo ""
+}
+
+
+if [ $# -ne 4 ]
+then
+    echo ""
+    display_syntax
+    exit
+else
+# Use > 0 to consume one or more arguments per pass in the loop (e.g.
+# some arguments don't have a corresponding value to go with it such
+# as in the --default example).
+    while [[ $# > 0 ]]
+    do
+        key="$1"
+            case $key in
+            -n|--namespace_prefix)
+            namespace_prefix_in="$2"
+            echo ""
+            shift # past argument
+            ;;
+            -f|--facade)
+            facade_name_in="$2"
+            shift # past argument
+            ;;
+            *)
+                    # unknown option
+            ;;
+        esac
+        shift # past argument or value
+    done
+fi
+echo Facade Name = ${facade_name_in}
+echo Namespace Prefix = $(echo ${namespace_prefix_in} | sed -e 's#\\#\\\\#')
+echo ""
+
+
+function display_start_banner(){
+
+    echo '**********************************************************'
+    echo '*          STARTING LARAVEL MAKE FACADE SCRIPT'
+    echo '**********************************************************'
+}
+
+#  Init the Vars that I can in the beginning
+function init_and_export_vars(){
+    echo
+    echo "INIT and EXPORT VARS"
+    echo "===================="
+    #   Substitution Tokens:
+    #
+    #   Tokens:
+    #   {namespace_prefix}
+    #   {namespace_prefix_lowerfirstchar}
+    #   {facade_name_upcase}
+    #   {facade_name_lowercase}
+    #
+
+
+    namespace_prefix=$(echo ${namespace_prefix_in} | sed -e 's#\\#\\\\#')
+    namespace_prefix_lowerfirstchar=$(echo ${namespace_prefix_in} | sed -e 's#\\#/#g' -e 's/^\(.\)/\l\1/g')
+    facade_name_upcase=$(echo ${facade_name_in} | sed -e 's/\b\(.\)/\u\1/')
+    facade_name_lowercase=$(echo ${facade_name_in} | awk '{print tolower($0)}')
+
+
+#   Filename: {facade_name_upcase}.php  -  SOURCE TEMPLATE
+source_template='<?php
+
+namespace {namespace_prefix}\Facades;
+
+class {facade_name_upcase}
+{
+    //
+}
+'
+
+
+#  Filename: {facade_name_upcase}ServiceProvider.php    -   SERVICE PROVIDER TEMPLATE
+serviceProvider_template='<?php
+
+namespace {namespace_prefix}\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App;
+
+
+class {facade_name_upcase}ServiceProvider extends ServiceProvider {
+
+    public function boot()
+    {
+        //
+    }
+
+    public function register()
+    {
+        App::bind("{facade_name_lowercase}", function()
+        {
+            return new \{namespace_prefix}\Facades\{facade_name_upcase};
+        });
+    }
+
+}
+'
+
+#  {facade_name_upcase}Facade.php   -   FACADE TEMPLATE
+facade_template='<?php
+
+namespace {namespace_prefix}\Facades;
+
+use Illuminate\Support\Facades\Facade;
+
+class {facade_name_upcase}Facade extends Facade {
+
+    protected static function getFacadeAccessor() { return "{facade_name_lowercase}"; }
+}
+'
+}
+
+
+function checkDirectoryExists(){
+    if [ ! -d ${namespace_prefix_lowerfirstchar} ]
+    then
+        echo ""
+        echo "Can't find the namespace: "${namespace_prefix_in}
+        echo ""
+        echo "*** NOTE:"
+        echo "           Make sure the namspace directory exists and"
+        echo "           you use quotes around the namespace_prefix."
+        echo ""
+        display_syntax
+        exit
+    fi
+}
+
+function makeDirectories(){
+    echo "Make Directories"
+    echo "================"
+    mkdir -p ${namespace_prefix_lowerfirstchar}/Facades
+    mkdir -p ${namespace_prefix_lowerfirstchar}/Providers
+    mkdir -p ${namespace_prefix_lowerfirstchar}/Facades
+}
+
+function createSourceTemplate(){
+    source_template=$(echo "${source_template}" | sed -e 's/{namespace_prefix}/'${namespace_prefix}'/g' -e 's/{facade_name_upcase}/'${facade_name_upcase}'/g' -e 's/{facade_name_lowercase}/'${facade_name_lowercase}'/g')
+    echo "Create Source Template:"
+    echo "======================="
+    echo "${source_template}"
+    echo ""
+    echo "${source_template}" > ./${namespace_prefix_lowerfirstchar}/Facades/${facade_name_upcase}.php
+}
+
+function createServiceProviderTemplate(){
+    serviceProvider_template=$(echo "${serviceProvider_template}" | sed -e 's/{namespace_prefix}/'${namespace_prefix}'/g' -e 's/{facade_name_upcase}/'${facade_name_upcase}'/g' -e 's/{facade_name_lowercase}/'${facade_name_lowercase}'/g')
+    echo "Create ServiceProvider Template:"
+    echo "================================"
+    echo "${serviceProvider_template}"
+    echo ""
+    echo "${serviceProvider_template}" > ./${namespace_prefix_lowerfirstchar}/Providers/${facade_name_upcase}ServiceProvider.php
+}
+
+function createFacadeTemplate(){
+    facade_template=$(echo "${facade_template}" | sed -e 's/{namespace_prefix}/'${namespace_prefix}'/g' -e 's/{facade_name_upcase}/'${facade_name_upcase}'/g' -e 's/{facade_name_lowercase}/'${facade_name_lowercase}'/g')
+    echo "Create Facade Template:"
+    echo "======================="
+    echo "${facade_template}"
+    echo ""
+    echo "${facade_template}" > ./${namespace_prefix_lowerfirstchar}/Facades/${facade_name_upcase}Facade.php
+}
+
+
+function serviceProviderPrompt(){
+    echo "Providers: ${namespace_prefix_in}\Providers\\${facade_name_upcase}ServiceProvider::class,"
+}
+
+function aliasPrompt(){
+    echo "Alias: '"${facade_name_upcase}"' => "${namespace_prefix_in}"\Facades\\${facade_name_upcase}Facade::class," 
+}
+
+#
+#   END FUNCTION DECLARATIONS
+#
+
+
+###########################
+## START RUNNING SCRIPT  ##
+###########################
+
+display_start_banner
+
+init_and_export_vars
+makeDirectories 
+checkDirectoryExists
+echo ""
+
+createSourceTemplate
+createServiceProviderTemplate
+createFacadeTemplate
+echo ""
+echo "==========================="
+echo "  Finished TEST"
+echo "==========================="
+echo ""
+echo "Add these lines to config/app.php:"
+echo "----------------------------------"
+serviceProviderPrompt
+aliasPrompt
+echo ""

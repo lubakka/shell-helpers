@@ -1,0 +1,25 @@
+#!/bin/bash
+
+start(){
+	/usr/bin/VBoxManage startvm $1 --type headless;
+}
+
+stop(){
+	/usr/bin/VBoxManage controlvm $1 acpipowerbutton;
+}
+
+case "$1" in
+   start)
+	start $2
+      ;;
+   stop)
+	stop $2
+      ;;
+   *)
+      ## If no parameters are given, print which are avaiable.
+      echo "Usage: $0 {start|stop|force-stop|status|restart}"
+      echo " "
+      exit 1
+      ;;
+esac
+

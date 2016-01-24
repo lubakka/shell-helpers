@@ -1,0 +1,55 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          vms
+# Required-Start:    $local_fs $remote_fs $network $syslog $named
+# Required-Stop:     $local_fs $remote_fs $network $syslog $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# X-Interactive:     true
+# Short-Description: Start/stop VirtualBox "Server" vms.
+# Description:       Start the VirtualBox "Server" vms.
+### END INIT INFO
+
+if [ -f /etc/default/rcS ]; then
+        . /etc/default/rcS
+fi
+. /lib/lsb/init-functions
+
+DESC="Server"
+NAME=VBoxManage
+
+do_start(){
+	VBoxManage startvm "Server" --type headless
+}
+
+do_stop(){
+	VBoxManage controlvm "Server" acpipowerbutton
+}
+
+usage(){
+	echo $"Usage: $0 {start|stop|restart}"
+	exit 1
+}
+
+case "$1" in 
+  start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	;;
+  restart)
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	sleep 15
+	do_start
+	;;
+  *)
+	usage
+	exit
+	;;
+esac
+
+exit 0
