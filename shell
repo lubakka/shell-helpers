@@ -13,5 +13,9 @@ countFilesType(){
 	find -type f | sed -e 's/.*\.//' | sort | uniq -c > $1
 }
 
+ffmpegDuration(){
+        ffprobe -i $1 -show_entries format=duration -v quiet -of csv="p=0" -sexagesimal
+}
+
 
 $@ ${@:2}
